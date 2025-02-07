@@ -22,6 +22,8 @@ public class PlayerBall : MonoBehaviour
 
     public ParticleSystem deathEffect;
 
+    public GameUIManager gameUIManager; // Ссылка на GameUIManager
+
     private float currentSize;
     private bool isShooting;
     private GameObject projectile;
@@ -34,7 +36,7 @@ public class PlayerBall : MonoBehaviour
     {
         currentSize = transform.localScale.x;
         maxProjectileSize = currentSize;
-        sphereRadius = currentSize / 2; 
+        sphereRadius = currentSize / 2;
         UpdateHeight();
         UpdateLineRenderer();
     }
@@ -45,12 +47,12 @@ public class PlayerBall : MonoBehaviour
         {
             Touch touch = Input.GetTouch(0);
 
-            if (touch.phase == TouchPhase.Began) // Начало касания
+            if (touch.phase == TouchPhase.Began) 
             {
                 isShooting = true;
             }
 
-            if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) // Удержание касания
+            if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) 
             {
                 if (currentSize <= minBallSize)
                 {
@@ -86,7 +88,7 @@ public class PlayerBall : MonoBehaviour
                 UpdateLineRenderer();
             }
 
-            if (touch.phase == TouchPhase.Ended && isShooting) // Отпускание пальца
+            if (touch.phase == TouchPhase.Ended && isShooting) 
             {
                 if (projectile != null)
                 {
@@ -183,8 +185,31 @@ public class PlayerBall : MonoBehaviour
             isMoving = false;
             isJumping = false;
             StopAllCoroutines();
-            TriggerDeathEffect();
+            WinGame();
         }
+    }
+
+    void WinGame()
+    {
+        Debug.Log("Игрок победил!");
+
+        // Вызов функции из GameUIManager для отображения экрана победы
+        if (gameUIManager != null)
+        {
+            gameUIManager.ShowWinScreen();
+        }
+
+        // Даем немного времени, чтобы экран победы был виден
+        StartCoroutine(HandlePlayerDeath());
+    }
+
+    IEnumerator HandlePlayerDeath()
+    {
+        // Ожидание 2 секунды, чтобы игрок мог увидеть экран победы
+        yield return new WaitForSeconds(2f);
+
+        TriggerDeathEffect();
+        Destroy(gameObject, 0.5f); // Удаление игрока после того как эффект смерти отыграл
     }
 
     void LoseGame()
@@ -193,10 +218,16 @@ public class PlayerBall : MonoBehaviour
 
         if (lineRenderer != null)
         {
-            Destroy(lineRenderer.gameObject); // Удаляем линию
+            Destroy(lineRenderer.gameObject); 
         }
 
-        TriggerDeathEffect();
+        // Вызов функции из GameUIManager для отображения экрана поражения
+        if (gameUIManager != null)
+        {
+            gameUIManager.ShowLoseScreen();
+        }
+
+        StartCoroutine(HandlePlayerDeath());
     }
 
     void TriggerDeathEffect()
@@ -209,8 +240,6 @@ public class PlayerBall : MonoBehaviour
             effect.Play();
             Destroy(effect.gameObject, effect.main.duration);
         }
-
-        Destroy(gameObject, 0.5f);
     }
 
     void UpdateProjectileSize()
