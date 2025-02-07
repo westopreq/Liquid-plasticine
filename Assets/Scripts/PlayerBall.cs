@@ -1,112 +1,241 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerBall : MonoBehaviour
 {
     public GameObject projectilePrefab;
     public float maxProjectileSize = 2f;
-    public float shootSpeed = 10f;
-    public float moveSpeed = 5f;
+    public float shootSpeed = 3f;
     public float minBallSize = 0.1f;
     public LineRenderer lineRenderer;
     public Transform door;
     public Transform ground;
     public float lineHeightOffset = 0.2f;
     public float playerShrinkRate = 0.1f;
-    public float sphereRadius = 1f;
+    public float sphereRadius;
     public Material projectileMaterial;
+    public float stopDistance = 1f;
+
+    public float jumpStep = 2f;
+    public float jumpHeight = 1f;
+    public float jumpDuration = 0.5f;
+
+    public ParticleSystem deathEffect;
 
     private float currentSize;
     private bool isShooting;
     private GameObject projectile;
     private bool isProjectileInitialized;
-    private float projectileGrowthFactor;
-
-    private float initialPlayerSize;
-    private float initialProjectileSize;
+    private float initialProjectileSize = 0.2f;
+    private bool isMoving = false;
+    private bool isJumping = false;
 
     void Start()
     {
         currentSize = transform.localScale.x;
-        initialPlayerSize = currentSize;
-        initialProjectileSize = 0.2f;
+        maxProjectileSize = currentSize;
+        sphereRadius = currentSize / 2; 
+        UpdateHeight();
+        UpdateLineRenderer();
     }
 
     void Update()
     {
-        // Удалено перемещение на WASD
-
-        if (Input.GetMouseButton(0))
+        if (Input.touchCount > 0) 
         {
-            if (currentSize <= minBallSize)
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began) // Начало касания
             {
-                Debug.Log("Проигрыш: куля-игрок слишком мала!");
-                return;
+                isShooting = true;
             }
 
-            isShooting = true;
-            currentSize = Mathf.Max(currentSize - playerShrinkRate * Time.deltaTime, minBallSize);
-            transform.localScale = new Vector3(currentSize, currentSize, currentSize);
-
-            if (!isProjectileInitialized)
+            if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) // Удержание касания
             {
-                Vector3 directionToDoor = (door.position - transform.position).normalized;
-                Vector3 spawnPosition = transform.position + directionToDoor * sphereRadius;
-
-                projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
-                projectile.transform.localScale = new Vector3(initialProjectileSize, initialProjectileSize, initialProjectileSize);
-                projectileGrowthFactor = 0f;
-
-                Projectile projectileScript = projectile.GetComponent<Projectile>();
-                if (projectileScript != null)
+                if (currentSize <= minBallSize)
                 {
-                    Vector3 doorPosition = new Vector3(door.position.x, transform.position.y, door.position.z);
-                    Vector3 directionToDoorForProjectile = (doorPosition - spawnPosition).normalized;
-                    projectileScript.SetDirection(directionToDoorForProjectile);
-                    projectileScript.projectileMaterial = projectileMaterial;
+                    Debug.Log("Проигрыш: игрок слишком мал!");
+                    LoseGame();
+                    return;
                 }
 
-                isProjectileInitialized = true;
-            }
-            else
-            {
-                UpdateProjectileSize();
-            }
-        }
-        else if (Input.GetMouseButtonUp(0) && isShooting)
-        {
-            if (projectile != null)
-            {
-                UpdateProjectileSize();
-                Projectile projectileScript = projectile.GetComponent<Projectile>();
-                if (projectileScript != null)
+                currentSize = Mathf.Max(currentSize - playerShrinkRate * Time.deltaTime, minBallSize);
+                transform.localScale = new Vector3(currentSize, currentSize, currentSize);
+                sphereRadius = currentSize / 2;
+                UpdateHeight();
+
+                if (!isProjectileInitialized)
                 {
-                    // Используем размер снаряда для расчета радиуса взрыва
-                    projectileScript.explosionRadius = projectile.transform.localScale.x;
-                    projectileScript.StartMoving();
+                    Vector3 spawnPosition = transform.position + (door.position - transform.position).normalized * sphereRadius;
+                    projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+                    projectile.transform.localScale = new Vector3(initialProjectileSize, initialProjectileSize, initialProjectileSize);
+
+                    Projectile projectileScript = projectile.GetComponent<Projectile>();
+                    if (projectileScript != null)
+                    {
+                        Vector3 directionToDoor = (door.position - spawnPosition).normalized;
+                        projectileScript.SetDirection(directionToDoor);
+                        projectileScript.projectileMaterial = projectileMaterial;
+                    }
+                    isProjectileInitialized = true;
+                }
+                else
+                {
+                    UpdateProjectileSize();
+                }
+                UpdateLineRenderer();
+            }
+
+            if (touch.phase == TouchPhase.Ended && isShooting) // Отпускание пальца
+            {
+                if (projectile != null)
+                {
+                    UpdateProjectileSize();
+                    Projectile projectileScript = projectile.GetComponent<Projectile>();
+                    if (projectileScript != null)
+                    {
+                        projectileScript.explosionRadius = projectile.transform.localScale.x;
+                        projectileScript.StartMoving();
+                    }
+                }
+                isProjectileInitialized = false;
+                isShooting = false;
+                maxProjectileSize = currentSize;
+                sphereRadius = currentSize / 2;
+
+                if (IsPathClear())
+                {
+                    isMoving = true;
+                    StartCoroutine(JumpTowardsDoor());
                 }
             }
-            isProjectileInitialized = false;
-            isShooting = false;
         }
 
         UpdateLineRenderer();
+    }
+
+    bool IsPathClear()
+    {
+        Vector3 direction = (door.position - transform.position).normalized;
+        float distance = Vector3.Distance(transform.position, door.position);
+
+        RaycastHit[] hits = Physics.SphereCastAll(transform.position, currentSize / 2, direction, distance);
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider.CompareTag("Enemy"))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    IEnumerator JumpTowardsDoor()
+    {
+        isJumping = true;
+
+        while (isMoving)
+        {
+            Vector3 direction = (door.position - transform.position).normalized;
+            float distanceToDoor = Vector3.Distance(transform.position, door.position);
+
+            if (distanceToDoor <= (currentSize / 2) + stopDistance)
+            {
+                isMoving = false;
+                isJumping = false;
+                yield break;
+            }
+
+            Vector3 jumpTarget = transform.position + direction * jumpStep;
+
+            float elapsedTime = 0f;
+            Vector3 startPos = transform.position;
+            Vector3 peakPos = startPos + new Vector3(0, jumpHeight, 0);
+            Vector3 endPos = jumpTarget;
+
+            while (elapsedTime < jumpDuration / 2)
+            {
+                transform.position = Vector3.Lerp(startPos, peakPos, (elapsedTime / (jumpDuration / 2)));
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            elapsedTime = 0f;
+
+            while (elapsedTime < jumpDuration / 2)
+            {
+                transform.position = Vector3.Lerp(peakPos, endPos, (elapsedTime / (jumpDuration / 2)));
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            UpdateHeight();
+        }
+
+        isJumping = false;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Door"))
+        {
+            Debug.Log("Игрок коснулся двери!");
+            isMoving = false;
+            isJumping = false;
+            StopAllCoroutines();
+            TriggerDeathEffect();
+        }
+    }
+
+    void LoseGame()
+    {
+        Debug.Log("Игрок проиграл!");
+
+        if (lineRenderer != null)
+        {
+            Destroy(lineRenderer.gameObject); // Удаляем линию
+        }
+
+        TriggerDeathEffect();
+    }
+
+    void TriggerDeathEffect()
+    {
+        Debug.Log("Игрок исчезает...");
+
+        if (deathEffect != null)
+        {
+            ParticleSystem effect = Instantiate(deathEffect, transform.position, Quaternion.identity);
+            effect.Play();
+            Destroy(effect.gameObject, effect.main.duration);
+        }
+
+        Destroy(gameObject, 0.5f);
     }
 
     void UpdateProjectileSize()
     {
         if (projectile != null)
         {
-            projectileGrowthFactor += Time.deltaTime * 2f;
-            float shrinkPercentage = (initialPlayerSize - currentSize) / (initialPlayerSize - minBallSize);
-            float newProjectileSize = Mathf.Lerp(initialProjectileSize, maxProjectileSize, shrinkPercentage * projectileGrowthFactor);
+            float newProjectileSize = projectile.transform.localScale.x + playerShrinkRate * Time.deltaTime;
+            newProjectileSize = Mathf.Min(newProjectileSize, maxProjectileSize);
             projectile.transform.localScale = new Vector3(newProjectileSize, newProjectileSize, newProjectileSize);
         }
     }
 
+    void UpdateHeight()
+    {
+        float groundTop = ground.position.y + (ground.localScale.y / 2f);
+        float newHeight = groundTop + (currentSize / 2) + lineHeightOffset;
+        transform.position = new Vector3(transform.position.x, newHeight, transform.position.z);
+    }
+
     void UpdateLineRenderer()
     {
-        float groundHeight = ground.position.y + ground.localScale.y;
-        float lineHeight = groundHeight + lineHeightOffset;
+        if (lineRenderer == null) return;
+
+        float groundTop = ground.position.y + (ground.localScale.y / 2f);
+        float lineHeight = groundTop + (currentSize / 2) + lineHeightOffset;
 
         Vector3 playerPosition = new Vector3(transform.position.x, lineHeight, transform.position.z);
         Vector3 doorPosition = new Vector3(door.position.x, lineHeight, door.position.z);
@@ -114,8 +243,7 @@ public class PlayerBall : MonoBehaviour
         lineRenderer.SetPosition(0, playerPosition);
         lineRenderer.SetPosition(1, doorPosition);
 
-        float lineWidth = Mathf.Lerp(0.1f, 1f, currentSize / maxProjectileSize);
-        lineRenderer.startWidth = lineWidth;
-        lineRenderer.endWidth = lineWidth;
+        lineRenderer.startWidth = currentSize;
+        lineRenderer.endWidth = currentSize;
     }
 }

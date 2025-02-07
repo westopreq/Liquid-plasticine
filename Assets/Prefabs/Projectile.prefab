@@ -48,10 +48,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a41ab4ff9b3fe49958f78758284dbcc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 10
-  explosionRadius: 5
+  speed: 10.37
   projectileMaterial: {fileID: 2100000, guid: a2dc326c42a2249779fbb3a0bc47ed7b, type: 2}
+  explosionRadius: 5
   impactEffect: {fileID: 5285682388976418432, guid: 3b2a4c40d745f4af8b3b777f83228dee, type: 3}
+  enemyDeathEffect: {fileID: 5285682388976418432, guid: 3b2a4c40d745f4af8b3b777f83228dee, type: 3}
+  infectionRadiusMultiplier: 1.5
 --- !u!33 &154938419725321939
 MeshFilter:
   m_ObjectHideFlags: 0

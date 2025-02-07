@@ -13,8 +13,8 @@ public class Projectile : MonoBehaviour
 
     public float explosionRadius;
     public ParticleSystem impactEffect;
+    public ParticleSystem enemyDeathEffect; // Новый эффект смерти врага
 
-    // Публичная переменная для множителя радиуса заражения, редактируемая в инспекторе
     public float infectionRadiusMultiplier = 1.5f;
 
     public delegate void ProjectileDestroyed();
@@ -52,32 +52,18 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isExploding)
-        {
-            // Не обрабатываем столкновения, если уже идет взрыв
-            return;
-        }
+        if (isExploding) return; // Игнорируем если уже взрывается
 
         if (other.CompareTag("Enemy"))
         {
-            Debug.Log("Снаряд столкнулся с врагом: " + other.name);
-
-            if (hasCollided)
-            {
-                Debug.Log("Снаряд уже столкнулся с врагом и не должен двигаться.");
-                return; // Прерываем дальнейшую обработку, если уже было столкновение
-            }
+            if (hasCollided) return; // Уже обработано
 
             hasCollided = true;
             StartInfection(other.gameObject);
 
-            // Вычисляем радиус заражения с учетом множителя
             float infectionRadius = transform.localScale.x * infectionRadiusMultiplier;
-
-            // Ищем все врагов в радиусе заражения
             Collider[] enemiesInRadius = Physics.OverlapSphere(transform.position, infectionRadius);
 
-            // Заражаем всех врагов в радиусе
             foreach (Collider col in enemiesInRadius)
             {
                 if (col.CompareTag("Enemy"))
@@ -86,16 +72,13 @@ public class Projectile : MonoBehaviour
                 }
             }
 
-            Renderer enemyRenderer = other.GetComponent<Renderer>();
-            if (enemyRenderer != null)
+            if (other.TryGetComponent(out Renderer enemyRenderer))
             {
                 Vector3 enemySize = enemyRenderer.bounds.size;
                 float stopDistance = (enemySize.x + enemySize.y) / 2f;
                 stopPosition = transform.position + direction * stopDistance;
-                Debug.Log("Рассчитано расстояние остановки: " + stopDistance);
             }
 
-            // Запускаем взрыв после первого столкновения
             StartCoroutine(Explode());
         }
     }
@@ -108,37 +91,26 @@ public class Projectile : MonoBehaviour
             infection = enemy.AddComponent<EnemyInfection>();
         }
 
-        infection.StartInfection(projectileMaterial);
-        CreateImpactEffect(enemy.transform.position);
+        infection.StartInfection(projectileMaterial, enemyDeathEffect);
     }
 
     private IEnumerator Explode()
     {
-        if (isExploding)
-        {
-            Debug.Log("Снаряд уже взрывается, повторный вызов запрещен.");
-            yield break; // Если уже взрывается, не выполняем повторно
-        }
+        if (isExploding) yield break;
 
         isExploding = true;
-        Debug.Log("Процесс взрыва начался.");
 
-        // Включение эффектов
         CreateImpactEffect(transform.position);
 
-        // Отключение рендера и коллайдера
         if (TryGetComponent(out Renderer renderer)) renderer.enabled = false;
         if (TryGetComponent(out Collider collider)) collider.enabled = false;
 
-        // Выводим сообщение о том, что эффект взрыва длится
         if (impactEffect != null)
         {
             float effectDuration = impactEffect.main.duration;
-            Debug.Log("Время длительности эффекта: " + effectDuration);
             yield return new WaitForSeconds(effectDuration);
         }
 
-        Debug.Log("Снаряд уничтожен.");
         Destroy(gameObject);
     }
 
