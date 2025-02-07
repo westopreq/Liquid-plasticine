@@ -13,9 +13,10 @@ GameObject:
   - component: {fileID: 1363257556774960503}
   - component: {fileID: 4404859911656348284}
   - component: {fileID: 2854459167730538876}
-  m_Layer: 11
+  - component: {fileID: 8119044495341012394}
+  m_Layer: 9
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -28,13 +29,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702976366226736417}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.92, y: 0, z: -13.29}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0, y: 0.15245076, z: -0, w: 0.9883111}
+  m_LocalPosition: {x: -0.45, y: 0.296, z: -13.03}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 17.538, z: 0}
 --- !u!114 &74081518156802415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48,18 +49,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   projectilePrefab: {fileID: 4082608531222326681, guid: 3c82f8880e8b84f0db0504730635ba17, type: 3}
+  maxProjectileSize: 2
+  shootSpeed: 0
+  minBallSize: 0.3
+  lineRenderer: {fileID: 0}
   door: {fileID: 0}
   ground: {fileID: 0}
-  lineRenderer: {fileID: 0}
-  playerShrinkRate: 0.1
+  lineHeightOffset: 0.7
+  playerShrinkRate: 0.4
   sphereRadius: 1
-  jumpDistance: 8
-  stopDistance: 1
-  groundLerpSpeed: 2
+  projectileMaterial: {fileID: 2100000, guid: a2dc326c42a2249779fbb3a0bc47ed7b, type: 2}
+  stopDistance: 0
+  jumpStep: 2
   jumpHeight: 2
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 1024
+  jumpDuration: 0.5
+  deathEffect: {fileID: 5285682388976418432, guid: 3b2a4c40d745f4af8b3b777f83228dee, type: 3}
+  gameUIManager: {fileID: 0}
 --- !u!33 &1363257556774960503
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -128,9 +133,36 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &8119044495341012394
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6702976366226736417}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0

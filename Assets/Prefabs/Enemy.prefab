@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3680201125051984483}
   - component: {fileID: 2859911842967281229}
   - component: {fileID: 1607788284266124854}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Enemy
   m_TagString: Enemy
   m_Icon: {fileID: 0}
@@ -28,8 +28,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6956477707545639495}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.89, y: 0.59, z: -6.61}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -6.2345653, y: -7.7532444, z: 2.2738938}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -47,7 +47,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a96328da0c9374415abd59ffb7ea078e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  infectionMaterial: {fileID: 0}
+  infectionMaterial: {fileID: 2100000, guid: a2dc326c42a2249779fbb3a0bc47ed7b, type: 2}
+  deathEffect: {fileID: 5285682388976418432, guid: 3b2a4c40d745f4af8b3b777f83228dee, type: 3}
 --- !u!33 &3680201125051984483
 MeshFilter:
   m_ObjectHideFlags: 0
